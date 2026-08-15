@@ -40,6 +40,7 @@ from backend.ai import provider
 from backend.career import analysis, company_profiles
 from backend.rag import service as rag
 from backend.resume import service as resume_analyzer
+from backend.security import limiter, trusted_origin
 from backend.session import registry
 from backend.workflow.preparation import run_preparation_workflow
 
@@ -58,6 +59,17 @@ bearer = HTTPBearer(auto_error=False)
 router = APIRouter()
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
+
 def _db_or_503():
     if not dbc.is_ready():
         raise HTTPException(
@@ -74,6 +86,8 @@ def get_user(request: Request, credentials: Optional[HTTPAuthorizationCredential
         raise HTTPException(status_code=503, detail="Supabase not configured")
     try:
         user = client.auth.get_user(credentials.credentials).user
+        if not limiter.allow(f"user:{user.id}", config.API_RATE_LIMIT_PER_MINUTE):
+            raise HTTPException(status_code=429, detail="Too many requests. Please wait a minute and try again.")
         meta = user.user_metadata or {}
         return {
             "uid": user.id,
@@ -81,8 +95,15 @@ def get_user(request: Request, credentials: Optional[HTTPAuthorizationCredential
             "name": meta.get("full_name") or meta.get("name") or "",
             "picture": meta.get("avatar_url") or meta.get("picture") or "",
         }
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+def _enforce_costly_request(user_id: str) -> None:
+    if not limiter.allow(f"costly:{user_id}", config.COSTLY_API_RATE_LIMIT_PER_MINUTE):
+        raise HTTPException(status_code=429, detail="Too many AI requests. Please wait a minute and try again.")
 
 
 def _valid_url(host: str) -> str:
@@ -128,6 +149,7 @@ async def start_workflow(
     num_questions: int = Form(config.DEFAULT_QUESTION_COUNT),
     user: dict = Depends(get_user),
 ):
+    _enforce_costly_request(user["uid"])
     num_questions = max(1, min(num_questions, 50))
     t0 = time.time()
     rag_status = {"available": rag.is_ready(), "indexed": False}
@@ -303,6 +325,7 @@ async def analyze_resume(
 ):
     """Analyze a PDF/DOCX in memory; raw upload bytes are discarded after parsing."""
     _db_or_503()
+    _enforce_costly_request(user["uid"])
     filename = file.filename or ""
     if Path(filename).suffix.lower() not in {".pdf", ".docx"}:
         raise HTTPException(status_code=400, detail="Upload a PDF or DOCX resume.")
@@ -380,6 +403,7 @@ class CoachingTurnRequest(BaseModel):
 
 @router.post("/coaching/salary")
 def salary_script(payload: SalaryRequest, user: dict = Depends(get_user)):
+    _enforce_costly_request(user["uid"])
     try:
         return {"success": True, "data": analysis.salary_script(**payload.model_dump())}
     except provider.ProviderError as exc:
@@ -389,6 +413,7 @@ def salary_script(payload: SalaryRequest, user: dict = Depends(get_user)):
 
 @router.post("/coaching/analyze")
 async def analyze(payload: MatchAnalysisRequest, user: dict = Depends(get_user)):
+    _enforce_costly_request(user["uid"])
     try:
         return {"success": True, "data": analysis.analyze_match(payload.job_description, payload.resume_text)}
     except provider.ProviderError as exc:
@@ -398,6 +423,7 @@ async def analyze(payload: MatchAnalysisRequest, user: dict = Depends(get_user))
 
 @router.post("/coaching/practice")
 def coaching_practice(payload: CoachingPracticeRequest, user: dict = Depends(get_user)):
+    _enforce_costly_request(user["uid"])
     allowed_metrics: dict[str, float] = {}
     allowed_keys = {
             "handDetectionCounter", "handDetectionDuration", "notFacingCounter",
@@ -428,6 +454,7 @@ def coaching_practice(payload: CoachingPracticeRequest, user: dict = Depends(get
 
 @router.post("/coaching/practice/turn")
 def coaching_practice_turn(payload: CoachingTurnRequest, user: dict = Depends(get_user)):
+    _enforce_costly_request(user["uid"])
     try:
         result = analysis.coaching_practice_turn(
             scenario=payload.scenario,
@@ -559,7 +586,13 @@ async def interview_ws(
 ):
     sess = await registry.get("hustlrzzv2", user_id, session_id)
     expected = sess.state.get("ws_token", "") if sess else ""
-    if not sess or not token or not secrets.compare_digest(str(expected), str(token)):
+    if (
+        not sess
+        or not token
+        or not trusted_origin(websocket.headers.get("origin"))
+        or not limiter.allow(f"ws:{user_id}", config.WEBSOCKET_RATE_LIMIT_PER_MINUTE)
+        or not secrets.compare_digest(str(expected), str(token))
+    ):
         await websocket.close(code=1008)
         return
 

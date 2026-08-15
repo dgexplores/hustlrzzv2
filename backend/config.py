@@ -45,6 +45,9 @@ DEFAULT_QUESTION_COUNT = int(os.getenv("DEFAULT_QUESTION_COUNT", "12"))
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() in {"1", "true", "yes"}
 AI_REQUEST_TIMEOUT_SECONDS = int(os.getenv("AI_REQUEST_TIMEOUT_SECONDS", "60"))
 WEB_SEARCH_TIMEOUT_SECONDS = int(os.getenv("WEB_SEARCH_TIMEOUT_SECONDS", "15"))
+API_RATE_LIMIT_PER_MINUTE = int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "90"))
+COSTLY_API_RATE_LIMIT_PER_MINUTE = int(os.getenv("COSTLY_API_RATE_LIMIT_PER_MINUTE", "12"))
+WEBSOCKET_RATE_LIMIT_PER_MINUTE = int(os.getenv("WEBSOCKET_RATE_LIMIT_PER_MINUTE", "10"))
 
 # Resume Analyzer safeguards.  Quotas are ultimately enforced by the Supabase
 # RPC; these values only define product policy and request bounds.
