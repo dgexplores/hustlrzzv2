@@ -152,6 +152,39 @@ For multi-replica scale, enforce equivalent IP/user limits at the edge (for
 example, a gateway or WAF). The in-application limiter protects this current
 single Railway service but is not a replacement for distributed edge controls.
 
+## API capacity and responsible use
+
+HUSTLRZZ calls external AI providers for preparation, coaching, and live
+interview responses. One preparation request can make several AI calls, so a
+burst of users starting preparation at the same time can increase latency or
+receive a temporary provider `429` response.
+
+### Current safeguards
+
+| Control | Default | Purpose |
+| --- | --- | --- |
+| Protected API requests | 90 per user/minute | Limits general request bursts |
+| AI-intensive requests | 12 per user/minute | Limits provider/cost bursts from preparation and coaching |
+| WebSocket starts | 10 per user/minute | Limits live interview connection churn |
+| Resume Analyzer free use | 3 per user/day, Asia/Kolkata | Uses an atomic database quota; paid credits are used afterwards |
+| Provider resilience | Groq primary, Gemini fallback | Keeps requests available when one configured provider fails |
+
+These defaults are appropriate for demos and a small monitored beta. They are
+not a promise that every request will complete instantly under simultaneous
+usage: the configured AI provider’s own quota and latency remain the final
+constraint.
+
+### Before a broad public launch
+
+1. Add a distributed edge rate limiter or WAF, plus a shared AI-work queue, so
+   limits work across multiple backend replicas.
+2. Set a provider budget, daily/monthly cost alerts, and a global concurrency
+   cap before inviting large groups of users.
+3. Use a paid provider plan sized for expected peak traffic and monitor `429`,
+   latency, completion, and cost metrics.
+4. Offer explicit product quotas—such as a free preparation/interview allowance
+   and higher paid limits—rather than relying on provider limits alone.
+
 ---
 
 ## For evaluators: demo flow
