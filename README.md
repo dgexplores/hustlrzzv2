@@ -29,6 +29,7 @@ flowchart LR
     A["Resume + job description"] --> B["Prepare\nRole fit · current company research · questions"]
     B --> C["Practice live\nVoice or typed WebSocket interview"]
     C --> D["Improve\nScored report · posture feedback · next steps"]
+    A --> F["Resume Analyzer\nATS-aware score · skills · improvements"]
     A -. optional knowledge .-> E["RAG knowledge base\nCandidate-owned, source-labelled context"]
     E -. grounded follow-ups .-> C
 ```
@@ -46,6 +47,26 @@ gesture, gaze, and posture signals run privately in the browser and permissions 
 requested only after the user enters the studio. The final report combines the
 approved transcript with session-normalized presence metrics, transcript-linked
 feedback, a stronger answer, a focused next drill, and browser-local attempt history.
+
+### Resume Analyzer
+
+The **Resume Analyzer** is a separate, authenticated workspace for a focused
+resume review. Upload a PDF or DOCX and optionally add a target job description.
+It returns a directional ATS-readiness score, visible and missing skills,
+sectional feedback, and concrete improvement suggestions. Candidates can revisit
+their structured results from a compact history list.
+
+The analyzer is deliberately cost- and privacy-aware:
+
+1. The uploaded file is size-checked, parsed in memory, and discarded; neither
+   raw file bytes nor extracted resume text are saved.
+2. A SHA-256 request hash prevents an identical resume/JD pair from consuming a
+   second analysis credit for the same candidate.
+3. A row-locked Supabase RPC consumes the daily free allowance atomically,
+   resetting on the **Asia/Kolkata** calendar day; paid credits are used only
+   after that allowance is exhausted.
+4. The AI response is schema-validated before a structured result is stored.
+   Provider or persistence failures restore the consumed credit.
 
 ## What makes it different
 
@@ -86,7 +107,7 @@ negotiation wording, risky phrases to avoid, and decision guardrails.
 
 | Layer | Production approach |
 | --- | --- |
-| **Interface** | Next.js 15, TypeScript, Tailwind, accessible responsive UI with light, dark, and system themes |
+| **Interface** | Next.js 16, TypeScript, Tailwind, accessible responsive UI with light, dark, and system themes |
 | **Live service** | Python FastAPI and WebSockets |
 | **AI resilience** | Groq primary provider with optional Gemini fallback |
 | **Data & identity** | Supabase Auth + PostgreSQL with Row-Level Security |
@@ -114,6 +135,7 @@ interview if embeddings or the knowledge database are unavailable.
 - Camera analysis stays in the browser; the app does not upload video frames.
 - Source-aware web research is time-bounded, ignores instructions found in source snippets, and falls back to a labelled built-in profile when unavailable.
 - Timeouts and non-fatal RAG failures keep preparation and interviews responsive.
+- Resume Analyzer uploads are limited to PDF/DOCX files of 5 MB or less; results are scoped to their owner.
 - `GET /health` reports API, AI-provider, and database readiness.
 
 ---
@@ -125,13 +147,14 @@ interview if embeddings or the knowledge database are unavailable.
 3. Review the tailored question pack, then begin an interview.
 4. Answer using text or microphone and enable the camera for local posture signals.
 5. End the interview to view the scored coaching report and saved history.
+6. In **Resume Analyzer**, upload a PDF/DOCX to review skills, score, and improvements.
 
 ## Project layout
 
 ```text
 backend/         FastAPI: preparation, live interviewer, judge, coaching, RAG
 frontend/        Next.js: auth, prepare, interview, coaching, dashboard
-supabase/        schema, migrations, hosted Auth configuration
+supabase/        schema, migrations, hosted Auth configuration, Resume Analyzer quota RPC
 docs/            operations guidance, including future verified-email setup
 Dockerfile       backend image for Railway or another Docker host
 ```
@@ -206,7 +229,9 @@ delivery with Resend.
 | `POST /coaching/practice` | Typed/voice rehearsal → combined content and delivery coaching |
 | `POST /coaching/practice/turn` | Secure multi-turn coaching follow-up or objection |
 | `GET /knowledge/status`, `POST /knowledge/documents`, `POST /knowledge/search` | Candidate-owned RAG knowledge |
-| `POST /resume-analyzer/analyze`, `GET /resume-analyzer/usage` | In-memory PDF/DOCX analysis with quota and history |
+| `POST /resume-analyzer/analyze` | In-memory PDF/DOCX analysis with duplicate-result reuse |
+| `GET /resume-analyzer/usage`, `GET /resume-analyzer/analyses` | Quota status and compact analysis history |
+| `GET /resume-analyzer/analyses/{analysis_id}` | Owner-scoped full analysis result |
 
 ---
 
