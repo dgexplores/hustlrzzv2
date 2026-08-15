@@ -132,11 +132,25 @@ interview if embeddings or the knowledge database are unavailable.
 
 - Candidate data is protected by Supabase Row-Level Security.
 - The service-role key stays backend-only.
+- Every protected API request is verified against the Supabase bearer token and
+  receives a per-user request limit; expensive AI endpoints have a separate,
+  lower per-user limit.
+- Live interview WebSockets require a short-lived, server-issued token, a
+  permitted browser origin, and a connection rate limit.
+- The Resume Analyzer quota RPCs are executable only by the backend
+  `service_role`, not browser roles.
+- API responses set no-store, HSTS, anti-framing, anti-MIME-sniffing, and
+  no-referrer headers. The frontend additionally sets a restrictive CSP and
+  browser permission policy.
 - Camera analysis stays in the browser; the app does not upload video frames.
 - Source-aware web research is time-bounded, ignores instructions found in source snippets, and falls back to a labelled built-in profile when unavailable.
 - Timeouts and non-fatal RAG failures keep preparation and interviews responsive.
 - Resume Analyzer uploads are limited to PDF/DOCX files of 5 MB or less; results are scoped to their owner.
 - `GET /health` reports API, AI-provider, and database readiness.
+
+For multi-replica scale, enforce equivalent IP/user limits at the edge (for
+example, a gateway or WAF). The in-application limiter protects this current
+single Railway service but is not a replacement for distributed edge controls.
 
 ---
 
