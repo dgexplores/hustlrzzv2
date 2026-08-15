@@ -68,6 +68,29 @@ The analyzer is deliberately cost- and privacy-aware:
 4. The AI response is schema-validated before a structured result is stored.
    Provider or persistence failures restore the consumed credit.
 
+## Current feature inventory
+
+| Product area | Available now | Candidate value |
+| --- | --- | --- |
+| **Authentication** | Email/password sign-in and sign-up; Google OAuth flow when configured in Supabase | Keeps preparation, reports, and knowledge private to the candidate |
+| **Prepare** | Pasted or PDF/DOCX resume, job description, company field, question count, optional portfolio/notes | Creates a tailored question pack, answer guidance, role-fit summary, and company brief |
+| **Company intelligence** | On-demand public-web research with source labels, confidence, retrieval time, and safe fallback profile | Helps the candidate understand likely role demands and interview patterns without presenting them as guarantees |
+| **Live interview** | Prepared-pack selection, timed text/voice WebSocket conversation, follow-up questions, end-of-session report, JSON export | Lets the candidate practise a realistic interview instead of reading a static question list |
+| **Voice and presence** | Browser speech recognition/text-to-speech; local camera, posture, gaze, and gesture signals | Supports delivery practice while keeping camera frames in the browser |
+| **Coaching Lab** | Resume/JD role-fit analysis, company playbooks, offer-negotiation scripts, and multi-turn typed/voice practice room | Turns feedback into tailored next actions beyond the core interview |
+| **Resume Analyzer** | PDF/DOCX review, optional JD match, directional readiness score, visible/missing skills, improvement priorities, saved history | Gives a quick, structured resume review without retaining raw files or text |
+| **Knowledge base (optional RAG)** | Candidate-owned resume, portfolio, notes, and session-report indexing with pgvector retrieval | Grounds later interview follow-ups in the candidate’s own material when Gemini embeddings are configured |
+| **Progress and export** | Saved preparation packs/interview sessions, dashboard history, JSON exports, light/dark/system theme | Makes practice iterative rather than a one-time session |
+| **Insight presentation** | Shared score dials, priority-next-step cards, plain-language evidence sections, and clear keep/improve feedback | Makes analysis easier to scan and act on across Resume Analyzer, Coaching, and Interview debriefs |
+| **Security and reliability** | Authenticated APIs, owner checks, RLS schema, rate limits, WebSocket-origin checks, CSP/security headers, timeout/fallback handling, health check | Reduces cross-user exposure, abusive request bursts, and fragile provider failures |
+
+### What candidates see after an analysis
+
+Every major result view follows the same order: **score or status → plain-English
+takeaway → highest-priority action → supporting evidence → optional export or
+next practice step**. This keeps the interface useful for students, career
+switchers, and experienced professionals—not only one user group.
+
 ## What makes it different
 
 ### Context-aware interview preparation
