@@ -6,6 +6,7 @@ import { api, wsUrl } from "@/lib/api";
 import { downloadJson } from "@/lib/download";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InsightSection, ScoreDial } from "@/components/ui/insight";
 import { Input, Label } from "@/components/ui/input";
 import { useAudio } from "@/hooks/useAudio";
 import { CameraPanel } from "@/components/interview/CameraPanel";
@@ -274,6 +275,7 @@ function TranscriptTurn({ turn }: { turn: Turn }) {
 
 function ReportPanel({ report, metrics, onRestart }: { report: any; metrics: ReturnType<typeof useMetrics.getState>["metrics"]; onRestart: () => void }) {
   const scores = Object.entries(report?.scores || {}) as [string, number][];
+  const overallScore = scores.length ? scores.reduce((sum, [, value]) => sum + (Number(value) || 0), 0) / scores.length : 0;
   const presence = [
     ["Gestures", metrics.handDetectionCounter, `${metrics.handDetectionDuration.toFixed(0)}s active`],
     ["Gaze resets", metrics.notFacingCounter, `${metrics.notFacingDuration.toFixed(0)}s away`],
@@ -281,15 +283,15 @@ function ReportPanel({ report, metrics, onRestart }: { report: any; metrics: Ret
   ] as const;
   const exportData = { ...report, local_presence_metrics: metrics };
   return <div className="space-y-6">
-    <Card className="overflow-hidden"><CardContent className="grid gap-6 p-6 lg:grid-cols-[1.2fr_0.8fr]"><div><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" />Session complete</span><h2 className="mt-4 text-3xl font-semibold tracking-tight">Your coaching debrief</h2><p className="mt-3 max-w-2xl leading-7 text-muted-foreground">{report?.summary || "Your report has been saved to practice history."}</p>{report?.verdict && <p className="mt-4 rounded-xl border bg-secondary/30 p-4 text-sm"><span className="font-semibold">Coach verdict:</span> {report.verdict}</p>}</div><div className="flex flex-col justify-end gap-2"><Button onClick={() => downloadJson("hustlrzz-coaching-report.json", exportData)}><Download className="h-4 w-4" />Export full report</Button><Button variant="outline" onClick={onRestart}><RefreshCw className="h-4 w-4" />Practice another session</Button></div></CardContent></Card>
+    <Card className="insight-hero overflow-hidden"><CardContent className="grid gap-6 p-6 lg:grid-cols-[1.2fr_auto]"><div><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" />Session complete</span><h2 className="mt-4 text-3xl font-semibold tracking-tight">Your coaching debrief</h2><p className="mt-3 max-w-2xl leading-7 text-muted-foreground">{report?.summary || "Your report has been saved to practice history."}</p>{report?.verdict && <p className="mt-4 text-sm leading-6"><span className="font-semibold">Coach verdict:</span> {report.verdict}</p>}</div><div className="flex flex-col items-end justify-between gap-4"><ScoreDial value={overallScore} label="overall" /><div className="flex w-full flex-col gap-2"><Button onClick={() => downloadJson("hustlrzz-coaching-report.json", exportData)}><Download className="h-4 w-4" />Export full report</Button><Button variant="outline" onClick={onRestart}><RefreshCw className="h-4 w-4" />Practice another session</Button></div></div></CardContent></Card>
     <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5 text-primary" />Answer quality</CardTitle></CardHeader><CardContent className="space-y-4">{scores.length ? scores.map(([label, rawScore]) => { const score = Number(rawScore) || 0; return <div key={label}><div className="mb-1.5 flex justify-between text-sm"><span className="font-medium capitalize">{label.replace(/_/g, " ")}</span><span className="font-semibold">{score}/100</span></div><div className="h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(0, Math.min(score, 100))}%` }} /></div></div>; }) : <p className="text-sm text-muted-foreground">No numerical scores were returned.</p>}</CardContent></Card>
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><MessageSquareText className="h-5 w-5 text-primary" />Local presence signals</CardTitle><p className="text-xs text-muted-foreground">These measurements stayed in your browser.</p></CardHeader><CardContent className="grid grid-cols-3 gap-3">{presence.map(([label, value, detail]) => <div key={label} className="rounded-xl bg-secondary/50 p-3"><p className="text-2xl font-semibold">{value}</p><p className="mt-1 text-xs font-medium">{label}</p><p className="mt-1 text-[11px] text-muted-foreground">{detail}</p></div>)}</CardContent></Card>
     </div>
-    <div className="grid gap-6 lg:grid-cols-2"><FeedbackList title="What worked" items={report?.strengths || []} positive /><FeedbackList title="Next practice focus" items={report?.improvements || []} /></div>
+    <div className="grid gap-6 lg:grid-cols-2"><FeedbackList title="Keep doing this" items={report?.strengths || []} positive /><FeedbackList title="Your next practice focus" items={report?.improvements || []} /></div>
   </div>;
 }
 
 function FeedbackList({ title, items, positive = false }: { title: string; items: string[]; positive?: boolean }) {
-  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent>{items.length ? <ul className="space-y-3">{items.slice(0, 5).map((item, index) => <li key={`${item}-${index}`} className="flex gap-3 text-sm leading-6"><span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${positive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-primary/10 text-primary"}`}>{index + 1}</span><span>{item}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">No additional notes were returned.</p>}</CardContent></Card>;
+  return <InsightSection eyebrow={positive ? "Keep" : "Improve"} title={title} description={positive ? "Bring these habits into your next answer." : "Choose one of these for your next session."}>{items.length ? <ul className="space-y-3">{items.slice(0, 5).map((item, index) => <li key={`${item}-${index}`} className="flex gap-3 text-sm leading-6"><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${positive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-primary/10 text-primary"}`}>{index + 1}</span><span>{item}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">No additional notes were returned.</p>}</InsightSection>;
 }

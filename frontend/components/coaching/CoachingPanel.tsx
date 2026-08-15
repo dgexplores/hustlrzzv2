@@ -7,10 +7,11 @@ import { downloadJson } from "@/lib/download";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InsightSection, InsightTags, ScoreDial } from "@/components/ui/insight";
 import { PracticeRoom } from "@/components/coaching/PracticeRoom";
 import {
-  AlertCircle, ArrowRight, BriefcaseBusiness, Building2, CheckCircle2,
-  Camera, CircleDollarSign, Download, Lightbulb, Loader2,
+  AlertCircle, ArrowRight, BriefcaseBusiness, Building2,
+  Camera, CircleDollarSign, Download, Loader2,
   MessageSquareQuote, Search, ShieldCheck, Sparkles, Target, TriangleAlert,
 } from "lucide-react";
 
@@ -110,12 +111,8 @@ function RoleFitWorkspace({ form, setForm, result, loading, onSubmit }: { form: 
 
 function FitResult({ result }: { result: any }) {
   const score = Math.max(0, Math.min(Number(result.overall_match_percent) || 0, 100));
-  return <div className="space-y-6"><div className="rounded-2xl border bg-secondary/25 p-5"><div className="flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evidence alignment</p><p className="mt-1 text-4xl font-semibold">{score}<span className="text-lg text-muted-foreground">%</span></p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">Directional score</span></div><div className="mt-4 h-2.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${score}%` }} /></div><p className="mt-4 text-sm leading-6 text-muted-foreground">{result.summary}</p></div><InsightList icon={<CheckCircle2 className="h-4 w-4" />} title="Evidence already working" items={result.matched_skills || []} tone="success" /><InsightList icon={<TriangleAlert className="h-4 w-4" />} title="Requirements to strengthen" items={result.gap_skills || []} tone="warning" /><InsightList icon={<Lightbulb className="h-4 w-4" />} title="Resume improvements" items={result.resume_weaknesses || []} tone="primary" /><div className="rounded-xl border border-primary/30 bg-primary/5 p-4"><p className="text-sm font-semibold">Recommended next step</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Add measurable evidence for the top gap, then create a new preparation pack to test it in a live interview.</p><Link href="/prepare" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary">Open Prepare <ArrowRight className="h-4 w-4" /></Link></div></div>;
-}
-
-function InsightList({ icon, title, items, tone }: { icon: React.ReactNode; title: string; items: string[]; tone: "success" | "warning" | "primary" }) {
-  const toneClass = tone === "success" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : tone === "warning" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-primary/10 text-primary";
-  return <section><h3 className="flex items-center gap-2 text-sm font-semibold"><span className={`rounded-md p-1.5 ${toneClass}`}>{icon}</span>{title}</h3>{items.length ? <div className="mt-3 flex flex-wrap gap-2">{items.map((item) => <span key={item} className="rounded-lg border bg-card px-3 py-2 text-sm">{item}</span>)}</div> : <p className="mt-2 text-sm text-muted-foreground">No items returned.</p>}</section>;
+  const priority = result.gap_skills?.[0] || result.resume_weaknesses?.[0] || "Turn one experience into a clear, measurable proof point.";
+  return <div className="space-y-4"><div className="insight-hero flex items-center justify-between gap-5 rounded-2xl border p-5"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Evidence alignment</p><h3 className="mt-2 text-xl font-semibold">Make the next application more specific.</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{result.summary}</p></div><ScoreDial value={score} label="fit" /></div><InsightSection eyebrow="Best next move" title={priority} description="Address this first. It is the most direct way to make your experience easier to recognize."><Link href="/prepare" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">Create a practice pack <ArrowRight className="h-4 w-4" /></Link></InsightSection><div className="grid gap-4 sm:grid-cols-2"><InsightSection eyebrow="Evidence you have" title="Use this more prominently"><InsightTags items={result.matched_skills || []} tone="positive" /></InsightSection><InsightSection eyebrow="Evidence to add" title="Build proof for these"><InsightTags items={result.gap_skills || []} tone="warning" /></InsightSection></div><InsightSection eyebrow="Next draft" title="Resume improvements"><InsightTags items={result.resume_weaknesses || []} /></InsightSection></div>;
 }
 
 function CompanyWorkspace({ companies, query, setQuery, selected, onSelect, onNegotiate }: { companies: any[]; query: string; setQuery: (value: string) => void; selected: any; onSelect: (company: any) => void; onNegotiate: () => void }) {

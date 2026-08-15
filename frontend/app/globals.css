@@ -68,6 +68,8 @@
   .motion-enter-delay-3 { animation-delay: 180ms; }
   .product-window { border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .88); box-shadow: 0 28px 80px hsl(225 34% 10% / .12), inset 0 1px 0 hsl(0 0% 100% / .7); backdrop-filter: blur(24px) saturate(140%); }
   .feature-surface { border: 1px solid hsl(var(--border)); background-color: hsl(var(--card) / .72); box-shadow: inset 0 1px 0 hsl(0 0% 100% / .65); transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), border-color 180ms ease, background-color 180ms ease; }
+  .insight-hero { background: radial-gradient(circle at top right, hsl(var(--primary) / .15), transparent 42%), linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary) / .55)); }
+  .insight-rule { background: linear-gradient(90deg, hsl(var(--primary) / .48), hsl(var(--primary) / 0)); }
   .data-grid { background-image: linear-gradient(hsl(var(--foreground) / .04) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / .04) 1px, transparent 1px); background-size: 28px 28px; }
   .live-wave > span { transform-origin: center; animation: live-wave 900ms ease-in-out infinite alternate; }
   .live-wave > span:nth-child(3n + 1) { animation-delay: -180ms; }
